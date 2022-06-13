@@ -1,3 +1,7 @@
+/* Created by Zain Murtaza
+   Queen Mary University of London
+   */
+
 #include "Adafruit_MLX90393.h"
 #include <Wire.h>
  
