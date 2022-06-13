@@ -1,0 +1,146 @@
+#include "Adafruit_MLX90393.h"
+#include <Wire.h>
+ 
+ const char k = ',';
+ //int sensor[4];
+
+byte addr[4] = {0x0C, 0x0D, 0x0E, 0x0F};
+byte Slave_addr[6] = {0x71, 0x72, 0x73, 0x74, 0x75, 0x76};
+#define TCAMaster 0x70
+
+
+Adafruit_MLX90393 sensor[96] = Adafruit_MLX90393();
+
+
+
+
+void TCA9548A(byte TCA_addr, uint8_t bus){
+  Wire.beginTransmission(TCA_addr);  // TCA9548A address
+  Wire.write(1 << bus);          // send byte to select bus
+  Wire.endTransmission();
+}
+
+void setup(void)
+{
+  Serial.begin(9600);
+  Wire.begin();
+
+byte num =-1;   // num iterates 0 to 47 for all sensors, its the sensor instance number
+byte addr_index =-1; // address of sensor 0x0C, 0x0D, 0x0E, 0x0F
+byte slave_num =-1;  // Slave number
+
+////////////////////////////////////// Lets work on TCAMaster
+
+for (byte p=0; p<=5; p++){      ///////////////////////////////////This loop iterates on ports of master multiplexer
+
+TCA9548A(TCAMaster, p);
+
+slave_num++;
+////////////////////////////////////// below is the code for scanning individual face
+// Serial.print("The TCA Master Port:"); Serial.println(p);
+
+for( byte i=0; i<=3; i++){      // this loop iterates on slave multiplexer 4 sections
+TCA9548A(Slave_addr[slave_num], i); 
+
+// Serial.print("The TCA Slave Number and Port:"); Serial.print(slave_num); Serial.println(i);
+ 
+while(1){
+  addr_index++;       // address of sensor 0x0C, 0x0D, 0x0E, 0x0F
+  num++;   // num iterates 0 to 15 for individual face, its the sensor instance number
+    
+ //       Serial.print(num);
+          /* Wait for serial on USB platforms. */
+          while (!Serial) {
+              delay(10);
+          }
+ //        Serial.print("Trying to access sensor instance with address"); Serial.print(num);Serial.println(addr[addr_index]);
+          if (! sensor[num].begin_I2C(addr[addr_index]) ) {          // Initialize sensor with adress 0x0C
+  //          Serial.println("Sensor not found");
+            while (1) { delay(10); }
+          }
+  //        Serial.println("Sensor Online");
+        
+          //Set gains
+          sensor[num].setGain(MLX90393_GAIN_2_5X); // Gain configuration
+        
+          
+          // Set resolution, per axis
+          sensor[num].setResolution(MLX90393_X, MLX90393_RES_17); // Resolution configuration
+          sensor[num].setResolution(MLX90393_Y, MLX90393_RES_17);
+          sensor[num].setResolution(MLX90393_Z, MLX90393_RES_17);
+        
+         
+          // Set oversampling
+          sensor[num].setOversampling(MLX90393_OSR_2); // OSR Config
+        
+        
+        
+          // Set digital filtering
+          sensor[num].setFilter(MLX90393_FILTER_6); // Dig filter configuration
+          
+          
+          if( (num+1)%4==0){
+            addr_index=-1;
+            break; 
+          }
+          
+          
+} //while loop ends
+     
+} // tca loop end
+//////////////////////////////////////// loop for scanning face ends here
+
+} // master multiplexer loop ends here
+
+//slave_num =-1;
+} // setup end
+
+
+void loop(void) {
+  
+  float x, y, z;
+  byte slave_num =-1;
+  byte num =-1; 
+  
+
+for (byte p=0; p<=5; p++){      ///////////////////////////////////This loop iterates on ports of master multiplexer
+
+TCA9548A(TCAMaster, p);
+
+slave_num++;
+////////////////////////////////////// below is the code for scanning individual face
+
+
+for(byte i=0; i<=3; i++){          //////////// Iterating on slave ports current 4 sections
+ TCA9548A(Slave_addr[slave_num],i); 
+
+ 
+for(byte j=0; j<=3; j++){    ////// Iterating on face
+  
+    
+    
+          // get X Y and Z data at once. I use readData functions for each sensor, and the values i print in screen
+          // S0
+          num++;
+          if (sensor[num].readData(&x, &y, &z)) { 
+           //   Serial.print("Sensor: "); Serial.println(num);
+               Serial.print(x, 4); Serial.print(k);
+               
+               Serial.print(y, 4); Serial.print(k);
+               Serial.print(z, 4); Serial.print(k);
+          } 
+        
+          
+//    delay(50);
+} //for loop ends
+//        Serial.println("--------------------");
+        
+} //tca loop ends
+ //       Serial.println("================================================");
+
+}// Master multiplexer ends here
+//  Serial.println("****************************************");
+//  Serial.println("****************************************");
+Serial.println();
+//  delay(1000);
+}
